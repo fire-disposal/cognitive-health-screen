@@ -16,8 +16,7 @@ FROM ghcr.io/astral-sh/uv:python3.13-alpine
 WORKDIR /opt/vue-fastapi-admin
 
 # 安装系统依赖（apk 包管理器适用于 alpine）
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
-    apk update && apk add --no-cache \
+RUN apk update && apk add --no-cache \
     gcc python3-dev bash nginx vim curl procps net-tools tzdata
 
 

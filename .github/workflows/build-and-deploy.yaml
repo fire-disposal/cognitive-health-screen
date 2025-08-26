@@ -60,7 +60,7 @@ jobs:
           tags: ${{ steps.meta-dev.outputs.tags }}
           labels: ${{ steps.meta-dev.outputs.labels }}
           build-args: |
-            APK_MIRROR_URL=https://mirrors.tuna.tsinghua.edu.cn
+            APK_MIRROR_URL=https://dl.alpinelinux.org/alpine
 
       - name: Remote Deploy Dev
         uses: appleboy/ssh-action@v0.1.10
@@ -147,7 +147,7 @@ jobs:
           tags: ${{ steps.meta-main.outputs.tags }}
           labels: ${{ steps.meta-main.outputs.labels }}
           build-args: |
-            APK_MIRROR_URL=https://mirrors.tuna.tsinghua.edu.cn
+            APK_MIRROR_URL=https://dl.alpinelinux.org/alpine
 
       - name: Remote Deploy Main
         uses: appleboy/ssh-action@v0.1.10
