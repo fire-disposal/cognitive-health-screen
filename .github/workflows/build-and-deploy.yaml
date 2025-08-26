@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [dev, master]
+    branches: [dev, main]
 
 # 同一分支并发时自动取消上一次
 concurrency:
@@ -110,10 +110,10 @@ jobs:
   # master 分支
   # ============================
   master_pipeline:
-    if: github.ref == 'refs/heads/master'
-    name: Master Branch Pipeline
+    if: github.ref == 'refs/heads/main'
+    name: Main Branch Pipeline
     runs-on: ubuntu-latest
-    environment: master
+    environment: main
 
     steps:
       - name: Checkout
@@ -130,26 +130,26 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker metadata (master)
-        id: meta-master
+        id: meta-main
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_REPO }}
           tags: |
-            type=raw,value=master-latest
-            type=raw,value=master-${{ github.sha }}
+            type=raw,value=main-latest
+            type=raw,value=main-${{ github.sha }}
 
-      - name: Build & Push (master)
+      - name: Build & Push (main)
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ${{ steps.meta-master.outputs.tags }}
-          labels: ${{ steps.meta-master.outputs.labels }}
+          tags: ${{ steps.meta-main.outputs.tags }}
+          labels: ${{ steps.meta-main.outputs.labels }}
           build-args: |
             APK_MIRROR_URL=https://mirrors.tuna.tsinghua.edu.cn
 
-      - name: Remote Deploy Master
+      - name: Remote Deploy Main
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.HOST }}
@@ -158,7 +158,7 @@ jobs:
           script: |
             set -euo pipefail
             IMAGE_REPO="${{ env.IMAGE_REPO }}"
-            TAG="master-${{ github.sha }}"
+            TAG="main-${{ github.sha }}"
 
             # 如果 GHCR 包是私有的，需要先登录（可在 Secrets 配 GHCR_USER / GHCR_PAT 后解除注释）
             # echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
@@ -167,9 +167,9 @@ jobs:
             docker pull "${IMAGE_REPO}:${TAG}"
 
             echo "Cleanup old container and images..."
-            docker rm -f digital-twin-master || true
+            docker rm -f digital-twin-main || true
             docker images --format "{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}" \
-              | grep "^${IMAGE_REPO}:master-" \
+              | grep "^${IMAGE_REPO}:main-" \
               | awk 'NR>1 {print $1}' \
               | xargs -r docker rmi -f || true
             docker image prune --filter "dangling=true" -f || true
@@ -178,7 +178,7 @@ jobs:
             docker run --restart=always -d \
               -p 8092:80 \
               -p 5858:5858 \
-              --name digital-twin-master \
+              --name digital-twin-main \
               -v /root/zdy/docker/log/digital-twin:/app/log \
               -e TAG="稳定版服务" \
               -e DB_HOST="${{ secrets.DB_HOST }}" \
