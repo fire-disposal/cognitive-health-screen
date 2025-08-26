@@ -1,0 +1,99 @@
+sources:
+  repo_0:
+    type: codeup
+    name: digital-twin-demo_HetS
+    endpoint: https://codeup.aliyun.com/68414f6dd42edddb98157f8f/digital-twin-demo.git
+    branch: dev
+    triggerEvents:
+      - push
+      - mergeRequestMerged
+    branchesFilter: ^dev$
+    certificate:
+      type: serviceConnection
+      serviceConnection: r36scsnnt79696ar
+
+defaultWorkspace: repo_0
+
+stages:
+  stage_0:
+    name: 镜像构建
+    jobs:
+      job_0:
+        name: 镜像构建并推送至ACR个人版
+        runsOn:
+          group: public/cn-hongkong
+          labels: linux,amd64
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+        steps:
+          step_0:
+            name: 镜像构建并推送至ACR
+            step: DockerBuildPushACR
+            with:
+              artifact: artifact
+              dockerfilePath: Dockerfile
+              dockerRegistry: crpi-07enltghz7a19y5q.cn-hangzhou.personal.cr.aliyuncs.com/digital-twin/cicd
+              useVpcAddress: false
+              dockerTag: dev-${DATETIME}
+              region: cn-hongkong
+              cacheType: remote
+              serviceConnection: kp1b5fj74esqbtoo
+        outputs:
+          image: crpi-07enltghz7a19y5q.cn-hangzhou.personal.cr.aliyuncs.com/digital-twin/cicd:dev-${DATETIME}
+        driven: auto
+        plugins: []
+
+  stage_1:
+    name: 部署
+    jobs:
+      job_0:
+        name: Docker部署
+        component: VMDockerDeploy
+        driven: auto
+        with:
+          useEncode: false
+          pauseStrategy: firstBatchPause
+          machineGroup: Pt2dkdH0cAW1gvGg
+          run: |-
+            #!/bin/bash
+            set -e
+
+            IMAGE="crpi-07enltghz7a19y5q.cn-hangzhou.personal.cr.aliyuncs.com/digital-twin/cicd:dev-${DATETIME}"
+
+            echo "拉取最新镜像：$IMAGE"
+            docker pull $IMAGE || exit 1
+
+            echo "清理旧容器..."
+            docker rm -f digital-twin-dev || true
+
+            echo "清理旧 dev 镜像（保留最新一个）..."
+            docker images --format "{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}" \
+              | grep "^crpi-07enltghz7a19y5q.cn-hangzhou.personal.cr.aliyuncs.com/digital-twin/cicd:dev-" \
+              | sort -k3 -r \
+              | tail -n +2 \
+              | awk '{print $2}' \
+              | xargs -r docker rmi -f
+
+            echo "清理悬空镜像..."
+            docker image prune --filter "dangling=true" -f
+
+            echo "启动新容器..."
+            docker run --restart=always -d \
+              -p 8092:80 \
+              -p 9999:9999 \
+              -p 5858:5858 \
+              --name digital-twin-dev \
+              -v /root/zdy/docker/log/digital-twin:/app/log \
+              -e TAG=dev-server \
+              -e DB_HOST=39.100.101.252 \
+              -e DB_PORT=5434 \
+              -e DB_USER=digital_twin_dev \
+              -e DB_PASSWORD=janpH3eibNemFTwe \
+              -e DB_NAME=digital_twin_dev \
+              -e INIT_MODE=rebuild \
+              -e MQTT_BROKER_HOST=39.100.101.252 \
+              -e MQTT_BROKER_PORT=1883 \
+              -e SSE_PING_INTERVAL=1 \
+              $IMAGE
+          executeUser: root
+          batchNumber: 2
+        plugins: []
