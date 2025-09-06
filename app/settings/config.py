@@ -15,14 +15,11 @@ class Settings(BaseSettings):
     CORS_ALLOW_HEADERS: typing.List = ["*"]
 
     DEBUG: bool = True
-    AI_API_KEY: str = os.getenv("AI_API_KEY", "")
-    AI_BASE_URL: str = os.getenv("AI_BASE_URL", "https://api.siliconflow.cn/v1/chat/completions")
-    AI_MODEL: str = os.getenv("AI_MODEL", "Qwen/QwQ-32B")
 
     PROJECT_ROOT: str = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
     BASE_DIR: str = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir))
     LOGS_ROOT: str = os.path.join(BASE_DIR, "app/logs")
-    SECRET_KEY: str = "fcd982825bea6c64b1f4ee7a1e6abb4d7e6a5893d5db6e858c3c037ee64ea6fe"  # openssl rand -hex 32
+    SECRET_KEY: str = "ef883c8481d97cdf955bec005cad07e828bf9af0d911420b5664768c35d14361"  # openssl rand -hex 32
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 day
     TORTOISE_ORM: dict = {

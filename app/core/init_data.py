@@ -19,8 +19,6 @@ from app.controllers.health.device import device_controller
 ROLES = [
     {"name": "管理员", "desc": "管理员角色", "grant_all": True},
     {"name": "普通用户", "desc": "普通用户角色", "grant_all": False},
-    {"name": "医生", "desc": "医生角色", "grant_all": False},
-    {"name": "护士", "desc": "护士角色", "grant_all": False},
 ]
 
 USERS = [
@@ -31,22 +29,6 @@ USERS = [
         "is_active": True,
         "is_superuser": True,
         "roles": ["管理员"]
-    },
-    {
-        "username": "doctor1",
-        "email": "doctor1@health.com",
-        "password": "doctor123",
-        "is_active": True,
-        "is_superuser": False,
-        "roles": ["医生"]
-    },
-    {
-        "username": "nurse1",
-        "email": "nurse1@health.com",
-        "password": "nurse123",
-        "is_active": True,
-        "is_superuser": False,
-        "roles": ["护士"]
     },
 ]
 

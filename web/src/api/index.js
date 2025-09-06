@@ -120,13 +120,6 @@ export default {
   getSensorList: (params = {}) => request.get('/digital-twin/sensors', { params }),
   // 获取指定房间的传感器数据
   getRoomSensorData: (room_id) => request.get(`/digital-twin/rooms/${room_id}/sensors`),
-  
-  // AI Chat API
-  getAiChatSessions: (params = {}) => request.get('/llm/sessions', { params }),
-  createAiChatSession: (data = {}) => request.post('/llm/sessions', data),
-  getAiChatSessionHistory: (session_id, params = {}) =>
-    request.get(`/llm/sessions/${session_id}/history`, { params }),
-  sendAiChat: (session_id, data = {}) => request.post(`/llm/sessions/${session_id}/ai-chat`, data),
 
   // health assessment API (健康评估)
   // 获取评估问卷列表
