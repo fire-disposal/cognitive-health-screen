@@ -1,37 +1,22 @@
 """管理员认证路由"""
 
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from app.core.dependency import AuthService
 from app.models.users import AdminUser
 from app.schemas.auth import AdminLogin, TokenResponse
-from app.utils.password import verify_password
+from app.utils.password import verify_password, check_user_auth
 from app.settings import settings
 
 router = APIRouter()
 
-def handle_auth_exception(user, password=None):
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
-        )
-    if password is not None and not verify_password(password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户已被禁用"
-        )
+# 统一鉴权异常处理已迁移至 utils.password.check_user_auth
 
 @router.post("/login", response_model=TokenResponse, summary="管理员登录")
 async def admin_login(form_data: AdminLogin):
     """管理员登录获取token"""
     user = await AdminUser.get_or_none(username=form_data.username)
-    handle_auth_exception(user, form_data.password)
+    check_user_auth(user, form_data.password)
 
     access_token = AuthService.create_token(
         user_id=user.id,
@@ -48,8 +33,7 @@ async def admin_login(form_data: AdminLogin):
         username=user.username,
         user_type="admin"
     )
-from fastapi import Depends, HTTPException, status, Request
-from app.core.dependency import AuthService
+# 重复导入已合并至顶部，无需再次导入
 
 async def verify_admin_token(token: str = Depends(AuthService.get_admin_user)):
     """

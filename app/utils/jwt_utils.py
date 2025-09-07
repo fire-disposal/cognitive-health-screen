@@ -7,7 +7,7 @@ import jwt
 from datetime import datetime, timezone
 from typing import Dict, Set, Any
 
-from app.schemas.system.auth import TokenData
+from app.schemas.auth import TokenData
 from app.settings import settings
 
 def create_access_token(*, data: TokenData) -> str:
@@ -85,3 +85,29 @@ class TokenBlacklist:
 
 # 全局token黑名单实例
 token_blacklist = TokenBlacklist()
+
+def decode_access_token(token: str) -> Dict[str, Any]:
+    """
+    解码并验证 JWT token
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        # 检查过期
+        exp = payload.get("exp")
+        if exp is not None:
+            now = datetime.now(timezone.utc).timestamp()
+            if now > exp:
+                raise jwt.ExpiredSignatureError("Token已过期")
+        # 检查必要字段
+        for field in ["user_id", "username", "user_type"]:
+            if field not in payload:
+                raise jwt.InvalidTokenError(f"缺少字段: {field}")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise
+    except Exception as e:
+        raise jwt.InvalidTokenError(f"Token无效: {e}")

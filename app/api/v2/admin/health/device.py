@@ -4,11 +4,7 @@ from fastapi import APIRouter, Query, Body, Path, HTTPException, Depends
 
 from app.controllers.health import device_controller
 from app.schemas.base import SuccessResponse, PaginatedResponse
-from app.schemas.health.device import (
-    DeviceCreate,
-    DeviceUpdate,
-    DeviceOut,
-)
+from app.schemas.health import DeviceCreate, DeviceUpdate
 from app.api.v2.auth import verify_admin_token, AdminTokenData
 
 logger = logging.getLogger(__name__)

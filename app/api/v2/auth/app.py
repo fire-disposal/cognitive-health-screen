@@ -5,33 +5,18 @@ from fastapi import APIRouter, HTTPException, status
 from app.core.dependency import AuthService
 from app.models.users import AppUser
 from app.schemas.auth import AppLogin, WechatLogin, TokenResponse
-from app.utils.password import verify_password
+from app.utils.password import verify_password, check_user_auth
 from app.settings import settings
 
 router = APIRouter()
 
-def handle_auth_exception(user, password=None):
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
-        )
-    if password is not None and not verify_password(password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户已被禁用"
-        )
+# 统一鉴权异常处理已迁移至 utils.password.check_user_auth
 
 @router.post("/login", response_model=TokenResponse, summary="应用用户账号密码登录")
 async def app_login(form_data: AppLogin):
     """应用用户账号密码登录获取token"""
     user = await AppUser.get_or_none(username=form_data.username)
-    handle_auth_exception(user, form_data.password)
+    check_user_auth(user, form_data.password)
 
     access_token = AuthService.create_token(
         user_id=user.id,

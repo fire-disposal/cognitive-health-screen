@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Query
+from fastapi import APIRouter, HTTPException, Depends, status, Query, Body
 from typing import List, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -40,7 +40,7 @@ def get_current_admin_user(request: Request) -> TokenData:
             detail="无效的Token"
         )
 
-admin_router = APIRouter(prefix="/", tags=["管理员用户管理"])
+admin_router = APIRouter(prefix="", tags=["管理员用户管理"])
 
 class AdminResponse(BaseModel):
     """管理员信息响应模型"""
@@ -187,7 +187,7 @@ async def update_admin(
 @admin_router.post("/{user_id}/reset-password", summary="重置管理员密码")
 async def reset_admin_password(
     user_id: int,
-    new_password: str = Field(..., min_length=6),
+    new_password: str = Body(..., min_length=6),
     token_data: TokenData = Depends(get_current_admin_user)
 ):
     """重置管理员密码（需要超级管理员权限）"""

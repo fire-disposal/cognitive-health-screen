@@ -14,6 +14,15 @@ class TokenData(BaseModel):
     user_type: str = Field(..., description="用户类型(admin/app)")
     exp: datetime = Field(..., description="过期时间")
 
+class AdminTokenData(TokenData):
+    """管理员Token数据"""
+    role: Optional[str] = Field(None, description="管理员角色")
+
+class UserTokenData(TokenData):
+    """应用用户Token数据"""
+    # 可扩展字段，如需要
+    pass
+
 class TokenResponse(BaseModel):
     """Token响应"""
     access_token: str = Field(..., description="访问令牌")
@@ -40,6 +49,8 @@ class WechatLogin(BaseModel):
 __all__ = [
     "LoginBase",
     "TokenData",
+    "AdminTokenData",
+    "UserTokenData",
     "TokenResponse",
     "AdminLogin",
     "AppLogin",

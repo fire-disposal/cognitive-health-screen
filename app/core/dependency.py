@@ -2,6 +2,7 @@ from typing import Union, Optional
 from datetime import datetime, timedelta
 
 import jwt
+from app.utils.jwt_utils import decode_access_token
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 
@@ -52,7 +53,7 @@ class AuthService:
             if TokenBlacklist.contains(token):
                 raise HTTPException(status_code=401, detail="Token has been blacklisted")
 
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            payload = decode_access_token(token)
             user_id = payload.get("user_id")
             user_type = payload.get("user_type")
 
@@ -78,7 +79,7 @@ class AuthService:
             if TokenBlacklist.contains(token):
                 raise HTTPException(status_code=401, detail="Token has been blacklisted")
 
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            payload = decode_access_token(token)
             user_id = payload.get("user_id")
             user_type = payload.get("user_type")
 
