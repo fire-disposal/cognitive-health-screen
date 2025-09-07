@@ -2,12 +2,13 @@ from typing import List, Optional, Dict, Any
 from tortoise.expressions import Q
 from tortoise.transactions import atomic
 
+from datetime import datetime
 from app.core.crud import CRUDBase
 from app.models.health.device import Device
 from app.schemas.health.device import DeviceCreate, DeviceUpdate
 from app.log import logger
 
-from app.models.health.patient import Patient
+from app.models.health.profile import HealthProfile
 
 class DeviceController(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
     def __init__(self):
@@ -58,38 +59,44 @@ class DeviceController(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         return await self.model.filter(query).all()
 
     @atomic()
-    async def bind_patient(self, device_id: int, patient_id: int) -> Optional[Device]:
+    async def bind_health_profile(self, device_id: int, health_profile_id: int) -> Optional[Device]:
+        from app.models.health.deviceassignment import DeviceAssignment
         device = await self.model.get_or_none(id=device_id)
         if device:
-            from app.models.health.patient import Patient
-            patient = await Patient.get_or_none(id=patient_id)
-            if patient:
-                await device.bind_patient(patient)
-                return device
+            # 解绑当前分配
+            await DeviceAssignment.filter(device_id=device_id, unassigned_at=None).update(unassigned_at=datetime.now())
+            # 创建新分配
+            await DeviceAssignment.create(device_id=device_id, health_profile_id=health_profile_id)
+            return device
         return None
 
     @atomic()
-    async def unbind_device(self, device_id: int) -> Device:
-        """解绑设备"""
-        device = await self.model.get(id=device_id)
-        if device.current_patient_id:
-            device.current_patient_id = None
-            await device.save()
-        return device
+    async def unbind_device(self, device_id: int) -> Optional[Device]:
+        """解绑设备与健康档案"""
+        from app.models.health.deviceassignment import DeviceAssignment
+        device = await self.model.get_or_none(id=device_id)
+        if device:
+            await DeviceAssignment.filter(device_id=device_id, unassigned_at=None).update(unassigned_at=datetime.now())
+            return device
+        return None
 
-    async def get_patient_devices(self, patient_id: int) -> List[Device]:
-        return await self.model.filter(current_patient_id=patient_id).all()
+    async def get_health_profile_devices(self, health_profile_id: int) -> List[Device]:
+        from app.models.health.deviceassignment import DeviceAssignment
+        assignments = await DeviceAssignment.filter(health_profile_id=health_profile_id, unassigned_at=None).all()
+        device_ids = [a.device_id for a in assignments]
+        return await self.model.filter(id__in=device_ids).all()
 
 
     async def unbind_by_username_and_device_id(self, username: str, device_id: str) -> Optional[Device]:
         """
-        通过用户名和设备ID解绑设备与用户
+        通过用户名和设备ID解绑设备与健康档案
         """
-        patient = await Patient.filter(name=username).first()
+        from app.models.health.profile import HealthProfile
+        from app.models.health.deviceassignment import DeviceAssignment
+        profile = await HealthProfile.filter(name=username).first()
         device = await self.model.filter(device_id=device_id).first()
-        if patient and device and device.current_patient_id == patient.id:
-            device.current_patient_id = None
-            await device.save()
+        if profile and device:
+            await DeviceAssignment.filter(device_id=device.id, health_profile_id=profile.id, unassigned_at=None).update(unassigned_at=datetime.now())
             return device
         return None
 
@@ -120,49 +127,3 @@ class DeviceController(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
 
 device_controller = DeviceController()
 # 设备分组控制器
-from app.models.health.devicegroup import DeviceGroup, DeviceGroupManager
-
-class DeviceGroupController:
-    def __init__(self):
-        self.model = DeviceGroup
-        self.manager = DeviceGroupManager()
-
-    async def get(self, id: int) -> Optional[DeviceGroup]:
-        return await self.model.get_or_none(id=id)
-
-    async def list(self, skip: int = 0, limit: int = 20) -> List[DeviceGroup]:
-        return await self.model.all().offset(skip).limit(limit).order_by("-id")
-
-    async def create(self, obj_in: dict) -> DeviceGroup:
-        return await self.model.create(**obj_in)
-
-    async def update(self, id: int, obj_in: dict) -> Optional[DeviceGroup]:
-        group = await self.model.get_or_none(id=id)
-        if not group:
-            return None
-        for k, v in obj_in.items():
-            setattr(group, k, v)
-        await group.save()
-        return group
-
-    async def remove(self, id: int) -> bool:
-        deleted = await self.model.filter(id=id).delete()
-        return deleted > 0
-
-    async def apply_group_rules(self, device_id: int) -> Optional[int]:
-        from app.models.health.device import Device
-        device = await Device.get_or_none(id=device_id)
-        if not device:
-            return None
-        return await self.manager.apply_group_rules(device)
-
-    async def batch_update_groups(self):
-        await self.manager.batch_update_groups()
-
-    async def get_devices_by_group(self, group_id: int) -> List["Device"]:
-        from app.models.health.device import Device
-        return await Device.filter(group_id=group_id).all()
-
-devicegroup_controller = DeviceGroupController()
-
-device_controller = DeviceController()

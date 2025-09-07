@@ -58,18 +58,4 @@
     }
   }
 
-  // logo类型配置
-  export const logoTypeMap = {
-    type1: {
-      icon: '/logo/type1.svg',
-      label: 'Logo风格1'
-    },
-    type2: {
-      icon: '/logo/type2.svg',
-      label: 'Logo风格2'
-    },
-    type3: {
-      icon: '/logo/type3.svg',
-      label: 'Logo风格3'
-    }
-  }
+  // 已移除logo类型配置，彻底去除SVG LOGO风格相关代码

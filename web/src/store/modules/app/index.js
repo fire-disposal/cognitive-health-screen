@@ -1,15 +1,13 @@
 import { defineStore } from 'pinia'
-import { themeColorMap, logoTypeMap } from '~/settings/theme'
+import { themeColorMap } from '~/settings/theme'
 import { useDark } from '@vueuse/core'
 import { lStorage } from '@/utils'
 
 const THEME_KEY = 'app-theme'
-const LOGO_KEY = 'app-logo'
 const isDark = useDark()
 
 // 从localStorage获取保存的主题设置
 const savedTheme = lStorage.get(THEME_KEY)
-const savedLogo = lStorage.get(LOGO_KEY)
 
 export const useAppStore = defineStore('app', {
   state() {
@@ -21,7 +19,6 @@ export const useAppStore = defineStore('app', {
       aliveKeys: {},
       isDark,
       theme: savedTheme || 'blue',
-      logoType: savedLogo || 'type1',
     }
   },
   actions: {
@@ -91,17 +88,6 @@ export const useAppStore = defineStore('app', {
         window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: themeName } }))
       }
     },
-    /** 设置Logo类型 */
-    setLogoType(type) {
-      if (type && logoTypeMap[type]) {
-        this.logoType = type
-        // 保存到localStorage
-        lStorage.set(LOGO_KEY, type)
-      }
-    },
-    /** 获取Logo颜色 */
-    getLogoColor() {
-      return this.logoType && logoTypeMap[this.logoType]?.color || 'var(--primary-color)'
-    },
+    // 已移除LOGO类型相关方法，彻底去除LOGO切换与状态
   },
 })

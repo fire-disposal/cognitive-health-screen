@@ -3,7 +3,7 @@ name = "IoMT_DigitalTwin_Platform"
 version = "0.1.0"
 description = "IoMT_DigitalTwin_Platform"
 authors = [
-    {name = "Firedisposal", email = "3295829485@qq.com"},
+    { name = "Firedisposal", email = "3295829485@qq.com" },
 ]
 requires-python = ">=3.11"
 dependencies = [
@@ -73,15 +73,19 @@ dependencies = [
     "crcmod>=1.7",
 ]
 
-
 [tool.black]
 line-length = 120
-target-version = ["py310", "py311"]
+target-version = [
+    "py310",
+    "py311",
+]
 
 [tool.ruff]
 line-length = 120
-lint.extend-select = []
-lint.ignore = [
+
+[tool.ruff.lint]
+extend-select = []
+ignore = [
     "F403",
     "F405",
 ]

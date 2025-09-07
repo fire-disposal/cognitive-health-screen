@@ -3,7 +3,7 @@ from tortoise.expressions import Q
 from tortoise.transactions import atomic
 
 from app.models.health.healthdatarecord import HealthDataRecord
-from app.schemas.health.healthdatarecord import HealthDataRecordCreate, HealthDataRecordUpdate
+from app.schemas.healthdatarecord import HealthDataRecordCreate, HealthDataRecordUpdate
 
 class HealthDataRecordController:
     def __init__(self):
@@ -21,8 +21,8 @@ class HealthDataRecordController:
     ) -> Dict[str, Any]:
         query = self.model.all()
         if filters:
-            if patient_id := filters.get("patient_id"):
-                query = query.filter(patient_id=patient_id)
+            if health_profile_id := filters.get("health_profile_id"):
+                query = query.filter(health_profile_id=health_profile_id)
             if schema_type := filters.get("schema_type"):
                 query = query.filter(schema_type=schema_type)
             if category := filters.get("category"):
@@ -44,7 +44,7 @@ class HealthDataRecordController:
     @atomic()
     async def create(self, obj_in: HealthDataRecordCreate) -> HealthDataRecord:
         obj = await self.model.create(
-            patient_id=obj_in.patient_id,
+            health_profile_id=obj_in.health_profile_id,
             recorded_at=obj_in.recorded_at,
             schema_type=obj_in.schema_type,
             payload=obj_in.payload
@@ -89,21 +89,21 @@ class HealthDataRecordController:
         return {"total": total, "by_type": type_stats}
 
 #TODO 多类型分析实现
-    async def get_patient_summary(self, patient_id: int, limit: int = 1) -> dict:
+    async def get_patient_summary(self, health_profile_id: int, limit: int = 1) -> dict:
         """
         获取患者健康摘要，聚合基本信息、最新体征、分析结果、异常告警等
         """
         from app.models.health.event import Event
         from app.models.health.healthdatarecord import HealthDataRecord
-        from app.models.health.patient import Patient
+        from app.models.health.profile import HealthProfile
         from app.models.health.alert import Alert
         import datetime
         from tortoise.functions import Max
 
         # 1. 基本信息
-        patient = await Patient.get_or_none(id=patient_id)
+        patient = await HealthProfile.get_or_none(id=health_profile_id)
         if not patient:
-            return {"error": "Patient not found"}
+            return {"error": "HealthProfile not found"}
 
         summary = {
             "patient": {
@@ -116,14 +116,14 @@ class HealthDataRecordController:
         }
 
         # 2. 最新体征（取最近一条原始数据）
-        latest_record = await HealthDataRecord.filter(patient_id=patient_id).order_by("-recorded_at").first()
+        latest_record = await HealthDataRecord.filter(health_profile_id=health_profile_id).order_by("-recorded_at").first()
         summary["latest_vitals"] = latest_record.payload if latest_record else {}
 
         # 3. 最新分析（每种分析类型各取一条）
-        analysis_types = await Event.filter(patient_id=patient_id).distinct().values_list("analysis_type", flat=True)
+        analysis_types = await Event.filter(health_profile_id=health_profile_id).distinct().values_list("analysis_type", flat=True)
         latest_analysis = {}
         for atype in analysis_types:
-            record = await Event.filter(patient_id=patient_id, analysis_type=atype).order_by("-recorded_at").first()
+            record = await Event.filter(health_profile_id=health_profile_id, analysis_type=atype).order_by("-recorded_at").first()
             if record:
                 latest_analysis[atype] = {
                     "recorded_at": record.recorded_at,
@@ -135,7 +135,7 @@ class HealthDataRecordController:
         # 4. 近期异常/告警（近7天未解决）
         now = datetime.datetime.now()
         week_ago = now - datetime.timedelta(days=7)
-        alerts = await Alert.filter(patient_id=patient_id, status="active", created_at__gte=week_ago).order_by("-created_at").limit(10)
+        alerts = await Alert.filter(health_profile_id=health_profile_id, status="active", created_at__gte=week_ago).order_by("-created_at").limit(10)
         summary["recent_alerts"] = [
             {
                 "id": a.id,
@@ -161,20 +161,20 @@ class HealthDataRecordController:
         return summary
     async def get_patient_history_data(
         self,
-        patient_id: int,
+        health_profile_id: int,
         data_type: str,
         limit: int = 10
     ) -> List[Dict[str, Any]]:
         """
         查询指定患者指定类型的最近 limit 条健康分析数据
-        :param patient_id: 患者ID
+        :param health_profile_id: 患者ID
         :param data_type: 数据类型（如 'mattress'、'heart_rate' 等）
         :param limit: 查询条数
         :return: 历史数据列表
         """
         from app.models.health.event import Event
         records = await Event.filter(
-            patient_id=patient_id,
+            health_profile_id=health_profile_id,
             analysis_type=data_type
         ).order_by('-recorded_at').limit(limit)
         return [record.result async for record in records]

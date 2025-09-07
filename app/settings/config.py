@@ -1,6 +1,5 @@
 import os
 import typing
-
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -22,35 +21,44 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "ef883c8481d97cdf955bec005cad07e828bf9af0d911420b5664768c35d14361"  # openssl rand -hex 32
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 day
-    TORTOISE_ORM: dict = {
-        "connections": {
-            "postgres": {
-                "engine": "tortoise.backends.asyncpg",
-                "credentials": {
-                    "host": os.getenv("DB_HOST", "localhost"),  # Database host address
-                    "port": int(os.getenv("DB_PORT", 5432)),  # Database port
-                    "user": os.getenv("DB_USER", "postgres"),  # Database username
-                    "password": os.getenv("DB_PASSWORD", "postgres"),  # Database password
-                    "database": os.getenv("DB_NAME", "digital_twin"),  # Database name
+
+    # 数据库配置
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = "postgres"
+    DB_NAME: str = "digital_twin"
+
+    @property
+    def TORTOISE_ORM(self) -> dict:
+        return {
+            "connections": {
+                "postgres": {
+                    "engine": "tortoise.backends.asyncpg",
+                    "credentials": {
+                        "host": os.getenv("DB_HOST", self.DB_HOST),
+                        "port": int(os.getenv("DB_PORT", self.DB_PORT)),
+                        "user": os.getenv("DB_USER", self.DB_USER),
+                        "password": os.getenv("DB_PASSWORD", self.DB_PASSWORD),
+                        "database": os.getenv("DB_NAME", self.DB_NAME),
+                    },
                 },
             },
-        },
-        "apps": {
-            "models": {
-                "models": ["app.models", "aerich.models"],
-                "default_connection": "postgres",
+            "apps": {
+                "models": {
+                    "models": ["app.models", "aerich.models"],
+                    "default_connection": "postgres",
+                },
             },
-        },
-        "use_tz": False,  # Whether to use timezone-aware datetimes
-        "timezone": "Asia/Shanghai",  # Timezone setting
-    }
-    DATETIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
+            "use_tz": False,
+            "timezone": "Asia/Shanghai",
+        }
 
     # 数据库初始化配置
     INIT_MODE: str = os.getenv("INIT_MODE", "auto")
     AERICH_ENABLED: bool = os.getenv("AERICH_ENABLED", "true").lower() == "false"
     
-    # 简化 MQTT 配置
+    # MQTT配置
     MQTT_CONFIG: dict = {
         "hostname": os.getenv("MQTT_BROKER_HOST", "localhost"),
         "port": int(os.getenv("MQTT_BROKER_PORT", 1883)),
@@ -64,7 +72,4 @@ class Settings(BaseSettings):
     WS_PORT: int = int(os.getenv("WS_PORT", 8765))
     WS_PATH: str = os.getenv("WS_PATH", "/ws/health")
 
-    
-
 settings = Settings()
-

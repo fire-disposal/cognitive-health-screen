@@ -5,9 +5,7 @@
   </div>
   <div ml-auto flex items-center>
     <ThemeMode />
-    <!-- <GithubSite /> -->
     <FullScreen />
-    <UserAvatar />
   </div>
 </template>
 
@@ -15,6 +13,5 @@
 import BreadCrumb from './components/BreadCrumb.vue'
 import MenuCollapse from './components/MenuCollapse.vue'
 import FullScreen from './components/FullScreen.vue'
-import UserAvatar from './components/UserAvatar.vue'
 import ThemeMode from './components/ThemeMode.vue'
 </script>

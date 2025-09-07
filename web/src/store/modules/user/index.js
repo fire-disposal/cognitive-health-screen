@@ -41,13 +41,12 @@ export const useUserStore = defineStore('user', {
           this.logout()
           return
         }
-        const { id, username, email, avatar, roles, is_superuser, is_active, theme, logo_type } = res.data
-        this.userInfo = { id, username, email, avatar, roles, is_superuser, is_active, theme, logo_type }
+        const { id, username, email, avatar, roles, is_superuser, is_active, theme } = res.data
+        this.userInfo = { id, username, email, avatar, roles, is_superuser, is_active, theme }
         
         // 设置用户主题和logo
         const appStore = useAppStore()
         appStore.setTheme(theme)
-        appStore.setLogoType(logo_type)
         return res.data
       } catch (error) {
         return error

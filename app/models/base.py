@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Optional, List,ClassVar,Dict,AnyStr,Any
+from typing import Optional, List, ClassVar, Dict, AnyStr, Any
 
 from tortoise import fields, models
 from app.settings import settings
@@ -19,6 +19,7 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+        default_connection = "postgres"
 
     async def to_dict(self, m2m: bool = False, exclude_fields: Optional[List[str]] = None):
         if exclude_fields is None:
@@ -67,6 +68,3 @@ class BaseModel(models.Model):
 class TimestampMixin:
     created_at = fields.DatetimeField(auto_now_add=True, index=True)
     updated_at = fields.DatetimeField(auto_now=True, index=True)
-
-
-

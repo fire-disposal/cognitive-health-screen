@@ -11,8 +11,8 @@
       </div>
 
       <div w-320 flex-col px-20 py-35>
-        <h5 f-c-c text-24 font-normal color="#6a6a6a">
-          IoMT Digital Twin Platform
+        <h5 f-c-c text-20 font-bold color="#333" style="line-height:1.5;">
+          数字孪生驱动的认知障碍居家健康监测系统
         </h5>
         <div mt-30>
           <n-input

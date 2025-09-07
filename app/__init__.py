@@ -5,7 +5,7 @@ from tortoise import Tortoise
 
 from app.log import logger
 from app.core.exceptions import SettingNotFound
-from app.core.init_db import init_manager
+from app.core.init_db import DBInitManager
 from app.core.init_app import (
     make_middlewares,
     register_exceptions,
@@ -21,7 +21,8 @@ except ImportError:
 async def lifespan(app: FastAPI):
     # ===== 初始化数据库 =====
     await Tortoise.init(config=settings.TORTOISE_ORM)
-    await init_manager.run()
+    db_init_manager = DBInitManager()
+    await db_init_manager.run()
 
     # ===== 发布服务启动事件 =====
     from app.core.event_bus import event_bus, EventType

@@ -1,7 +1,7 @@
 <template>
   <router-link h-60 f-c-c to="/">
     <img
-      :src="getCurrentLogo()"
+      src="/logo/type1.svg"
       style="width: 36px; height: 36px;"
       object-fit="contain"
     />
@@ -17,16 +17,17 @@
     >
       {{ title }}
     </h2>
+    <div
+      v-show="!appStore.collapsed"
+      style="font-size: 13px; color: #555; font-weight: 500; max-width: 180px; line-height: 1.4; margin-top: 2px;"
+    >
+      数字孪生驱动的认知障碍居家健康监测系统
+    </div>
   </router-link>
 </template>
 
 <script setup>
 import { useAppStore } from '@/store'
-import { logoTypeMap } from '~/settings/theme'
 const title = import.meta.env.VITE_TITLE
 const appStore = useAppStore()
-
-const getCurrentLogo = () => {
-  return appStore.logoType && logoTypeMap[appStore.logoType]?.icon || logoTypeMap.type1.icon
-}
 </script>

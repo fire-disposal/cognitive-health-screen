@@ -2,17 +2,63 @@
 Root schemas package
 """
 
-from app.schemas import (
-    base,
-    system,
-    health,
+from app.schemas.users import (
+    AdminUserBase, AdminUserCreate, AdminUserUpdate, AdminUserResponse,
+    AppUserBase, AppUserCreate, AppUserUpdate, AppUserResponse,
 )
 
-# 从子模块收集所有声明的导出内容
-__all__ = []
-modules = [base, system, health]
-for module in modules:
-    __all__.extend(module.__all__)
-    # 将子模块中声明的所有内容导入到当前命名空间
-    for name in module.__all__:
-        globals()[name] = getattr(module, name)
+from app.schemas.health import (
+    HealthProfileBase, HealthProfileCreate, HealthProfileUpdate, HealthProfileResponse,
+    DeviceBase, DeviceCreate, DeviceUpdate, DeviceResponse,
+    DeviceAssignmentCreate, DeviceAssignmentUpdate, DeviceAssignmentResponse,
+    HealthDataRecordCreate, HealthDataRecordUpdate, HealthDataRecordResponse,
+    EventCreate, EventUpdate, EventResponse,
+    AlertCreate, AlertUpdate, AlertResponse,
+)
+
+from app.schemas.auth import (
+    LoginBase, TokenData, TokenResponse,
+    AdminLogin, AppLogin, WechatLogin,
+)
+
+__all__ = [
+    # User Schemas
+    "AdminUserBase",
+    "AdminUserCreate",
+    "AdminUserUpdate", 
+    "AdminUserResponse",
+    "AppUserBase",
+    "AppUserCreate",
+    "AppUserUpdate",
+    "AppUserResponse",
+    
+    # Health Schemas
+    "HealthProfileBase",
+    "HealthProfileCreate",
+    "HealthProfileUpdate",
+    "HealthProfileResponse",
+    "DeviceBase",
+    "DeviceCreate",
+    "DeviceUpdate", 
+    "DeviceResponse",
+    "DeviceAssignmentCreate",
+    "DeviceAssignmentUpdate",
+    "DeviceAssignmentResponse",
+    "HealthDataRecordCreate",
+    "HealthDataRecordUpdate",
+    "HealthDataRecordResponse",
+    "EventCreate",
+    "EventUpdate",
+    "EventResponse",
+    "AlertCreate",
+    "AlertUpdate",
+    "AlertResponse",
+
+    # Auth Schemas
+    "LoginBase",
+    "TokenData",
+    "TokenResponse",
+    "AdminLogin",
+    "AppLogin",
+    "WechatLogin",
+]

@@ -14,7 +14,7 @@ import {
 } from 'naive-ui'
 import CommonPage from '@/components/page/CommonPage.vue'
 import { useUserStore, useAppStore } from '@/store'
-import { themeColorMap, logoTypeMap } from '~/settings/theme'
+import { themeColorMap } from '~/settings/theme'
 import api from '@/api'
 
 const userStore = useUserStore()
@@ -43,17 +43,9 @@ const infoForm = ref({
   username: userStore.name,
   email: userStore.email,
   theme: userStore.theme,
-  logo_type: appStore.logoType,
 })
 
-const logoOptions = Object.entries(logoTypeMap).map(([key, value]) => ({
-  label: value.label,
-  value: key,
-}))
 
-const getCurrentLogoSrc = computed(() => {
-  return logoTypeMap[infoForm.value.logo_type]?.icon || logoTypeMap.type1.icon
-})
 
 async function updateProfile() {
   try {
@@ -61,7 +53,7 @@ async function updateProfile() {
     const valid = await infoFormRef.value?.validate()
     if (!valid) return
 
-    const { theme, logo_type, username, email, avatar } = infoForm.value
+    const { theme, username, email, avatar } = infoForm.value
 
     if (theme && theme !== userStore.theme) {
       await api.updateUserTheme(theme)
@@ -69,11 +61,7 @@ async function updateProfile() {
       userStore.setUserInfo({ ...userStore.$state.userInfo, theme })
     }
 
-    if (logo_type && logo_type !== appStore.logoType) {
-      await api.updateUserLogo(logo_type)
-      appStore.setLogoType(logo_type)
-      userStore.setUserInfo({ ...userStore.$state.userInfo, logo_type })
-    }
+    // 已移除LOGO切换相关逻辑
 
     if (username !== userStore.name || email !== userStore.email || avatar !== userStore.avatar) {
       await api.updateUser({
@@ -187,23 +175,7 @@ const passwordFormRules = {
                 </n-space>
               </n-form-item>
 
-              <n-form-item label="Logo 设置" path="logo_type">
-                <n-space vertical>
-                  <n-select
-                    v-model:value="infoForm.logo_type"
-                    :options="logoOptions"
-                    placeholder="选择 Logo 类型"
-                    style="width: 300px"
-                  />
-                  <n-image
-                    v-if="infoForm.logo_type"
-                    :src="getCurrentLogoSrc"
-                    width="48"
-                    height="48"
-                    object-fit="contain"
-                  />
-                </n-space>
-              </n-form-item>
+              <!-- 已移除LOGO设置相关UI，彻底去除LOGO切换功能 -->
 
               <NFormItem label="主题配色" path="theme">
                 <div style="display: flex; align-items: center">

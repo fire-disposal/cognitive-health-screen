@@ -1,65 +1,148 @@
-from typing import Optional
+from typing import Union, Optional
+from datetime import datetime, timedelta
 
 import jwt
-from fastapi import Depends, Header, HTTPException, Request
+from fastapi import Depends, HTTPException, Request
+from fastapi.security import OAuth2PasswordBearer
 
 from app.core.ctx import CTX_USER_ID
-from app.models import Role, User
+from app.models.users import AdminUser, AppUser
 from app.settings import settings
 
+# 定义不同端点的OAuth2认证
+admin_oauth2 = OAuth2PasswordBearer(tokenUrl="/v2/auth/admin/login")
+app_oauth2 = OAuth2PasswordBearer(tokenUrl="/v2/auth/app/login")
 
-class AuthControl:
+class TokenBlacklist:
+    """简单的Token黑名单实现"""
+    _blacklist = set()
+
     @classmethod
-    async def is_authed(cls, token: str = Header(..., description="token验证")) -> Optional["User"]:
-        try:
-            if token == "dev":
-                user = await User.filter().first()
-                user_id = user.id
-            else:
-                decode_data = jwt.decode(token, settings.SECRET_KEY, algorithms=settings.JWT_ALGORITHM)
-                user_id = decode_data.get("user_id")
-            user = await User.filter(id=user_id).first()
-            if not user:
-                raise HTTPException(status_code=401, detail="Authentication failed")
-            CTX_USER_ID.set(int(user_id))
-            return user
-        except jwt.DecodeError:
-            raise HTTPException(status_code=401, detail="无效的Token")
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="登录已过期")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"{repr(e)}")
+    def add(cls, token: str) -> None:
+        cls._blacklist.add(token)
 
+    @classmethod
+    def remove(cls, token: str) -> None:
+        cls._blacklist.discard(token)
+
+    @classmethod
+    def contains(cls, token: str) -> bool:
+        return token in cls._blacklist
+
+class AuthService:
+    """认证服务"""
+
+    @staticmethod
+    def create_token(user_id: int, username: str, user_type: str) -> str:
+        """创建JWT token"""
+        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        data = {
+            "user_id": user_id,
+            "username": username,
+            "user_type": user_type,
+            "exp": expire
+        }
+        token = jwt.encode(data, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+        return token
+
+    @staticmethod
+    async def get_admin_user(token: str = Depends(admin_oauth2)) -> AdminUser:
+        """验证管理员用户"""
+        try:
+            if TokenBlacklist.contains(token):
+                raise HTTPException(status_code=401, detail="Token has been blacklisted")
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            user_id = payload.get("user_id")
+            user_type = payload.get("user_type")
+
+            if user_type != "admin":
+                raise HTTPException(status_code=403, detail="Not an admin token")
+
+            user = await AdminUser.get_or_none(id=user_id)
+            if not user or not user.is_active:
+                raise HTTPException(status_code=401, detail="User not found or inactive")
+
+            CTX_USER_ID.set(user_id)
+            return user
+
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token has expired")
+        except jwt.JWTError:
+            raise HTTPException(status_code=401, detail="Could not validate token")
+
+    @staticmethod
+    async def get_app_user(token: str = Depends(app_oauth2)) -> AppUser:
+        """验证应用用户"""
+        try:
+            if TokenBlacklist.contains(token):
+                raise HTTPException(status_code=401, detail="Token has been blacklisted")
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            user_id = payload.get("user_id")
+            user_type = payload.get("user_type")
+
+            if user_type != "app":
+                raise HTTPException(status_code=403, detail="Not an app user token")
+
+            user = await AppUser.get_or_none(id=user_id)
+            if not user or not user.is_active:
+                raise HTTPException(status_code=401, detail="User not found or inactive")
+
+            CTX_USER_ID.set(user_id)
+            return user
+
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token has expired")
+        except jwt.JWTError:
+            raise HTTPException(status_code=401, detail="Could not validate token")
 
 class PermissionControl:
+    """权限控制"""
+
+    @staticmethod
+    def is_admin_path(path: str) -> bool:
+        """检查是否管理员API路径"""
+        return path.startswith("/v2/admin")
+
+    @staticmethod
+    def is_app_path(path: str) -> bool:
+        """检查是否应用用户API路径"""
+        return path.startswith("/v2/app")
+
     @classmethod
-    async def has_permission(cls, request: Request, current_user: User = Depends(AuthControl.is_authed)) -> None:
-        if current_user.is_superuser:
-            return
-        method = request.method
+    async def check_permission(
+        cls,
+        request: Request,
+        user: Union[AdminUser, AppUser] = Depends(AuthService.get_admin_user)
+    ) -> None:
+        """检查用户权限"""
         path = request.url.path
-        roles: list[Role] = await current_user.roles
-        if not roles:
-            raise HTTPException(status_code=403, detail="The user is not bound to a role")
-        apis = [await role.apis for role in roles]
-        all_permission_apis = sum(apis, [])
-        
-        # 检查 (method, path) 权限
-        permission_paths = set((api.method, api.path) for api in all_permission_apis)
-        if (method, path) in permission_paths:
+
+        # 管理员API只允许管理员访问
+        if cls.is_admin_path(path):
+            if not isinstance(user, AdminUser):
+                raise HTTPException(status_code=403, detail="Admin privileges required")
             return
 
-        # 检查 tags 权限
-        # 获取请求 API 的 tags
-        from app.models.admin import Api # 局部导入，避免循环依赖
-        requested_api = await Api.filter(path=path, method=method).first()
-        if requested_api and requested_api.tags:
-            user_permission_tags = set(api.tags for api in all_permission_apis if api.tags)
-            if requested_api.tags in user_permission_tags:
-                return
+        # 应用API只允许对应的应用用户访问
+        if cls.is_app_path(path):
+            if not isinstance(user, AppUser):
+                raise HTTPException(status_code=403, detail="App user privileges required")
+            return
 
-        raise HTTPException(status_code=403, detail=f"Permission denied method:{method} path:{path}")
+        # 其他API需要具体判断权限
+        if isinstance(user, AdminUser):
+            # 管理员可以访问所有API
+            return
+        elif isinstance(user, AppUser):
+            # 应用用户只能访问自己的数据
+            # 在具体API中处理
+            return
+        else:
+            raise HTTPException(status_code=403, detail="Unknown user type")
 
-
-DependAuth = Depends(AuthControl.is_authed)
-DependPermission = Depends(PermissionControl.has_permission)
+# 依赖注入
+DependAdminUser = Depends(AuthService.get_admin_user)
+DependAppUser = Depends(AuthService.get_app_user)
+DependPermission = Depends(PermissionControl.check_permission)

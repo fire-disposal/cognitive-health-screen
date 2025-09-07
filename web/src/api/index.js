@@ -8,7 +8,7 @@ export default {
   // profile
   updatePassword: (data = {}) => request.post('/base/update_password', data),
   updateUserTheme: (theme) => request.post('/base/update_theme', { theme }),
-  updateUserLogo: (logo_type) => request.post('/base/update_logo', { logo_type }),
+  // 已移除 updateUserLogo，彻底去除LOGO切换API
   // users
   getUserList: (params = {}) => request.get('/user/list', { params }),
   getUserById: (params = {}) => request.get('/user/get', { params }),
